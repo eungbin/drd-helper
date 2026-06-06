@@ -32,3 +32,21 @@ test("uses SEO-focused dashboard heading and supporting copy", () => {
   assert.match(dashboardSource, /조합법/);
   assert.match(dashboardSource, /가스/);
 });
+
+test("target result details move into an accessible modal with compact card labels", () => {
+  const dashboardSource = readFileSync(
+    join(process.cwd(), "src/features/drd-helper/Dashboard.tsx"),
+    "utf8",
+  );
+
+  assert.match(dashboardSource, /function TargetResultCard/);
+  assert.match(dashboardSource, /function TargetResultModal/);
+  assert.match(dashboardSource, /role="dialog"/);
+  assert.match(dashboardSource, /aria-modal="true"/);
+  assert.match(dashboardSource, /가스 OK/);
+  assert.match(dashboardSource, /가스 부족/);
+  assert.match(dashboardSource, /부족한 레어 유닛/);
+  assert.match(dashboardSource, /부족한 가스/);
+  assert.match(dashboardSource, /조합법/);
+  assert.doesNotMatch(dashboardSource, /상세 보기/);
+});
