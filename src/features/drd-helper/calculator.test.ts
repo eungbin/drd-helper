@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { calculateShortage, createEmptyInventory } from "./calculator";
+import {
+  calculateRareProgress,
+  calculateShortage,
+  calculateRareProgressPercentage,
+  createEmptyInventory,
+} from "./calculator";
 import { emptyRareCounts, unitId } from "./data";
 
 test("서사 손오공 with no inventory requires four rare 손오공 and four gas", () => {
@@ -93,4 +98,48 @@ test("절대 슈퍼 사이어인 5 손오공 does not directly require 신화 �
     calculateShortage(targetId, withMythic),
     calculateShortage(targetId, withoutMythic),
   );
+});
+
+test("rare progress is 0 percent with no inventory for a target with rare requirements", () => {
+  const progress = calculateRareProgress(
+    unitId("서사", "손오공"),
+    createEmptyInventory(),
+  );
+
+  assert.equal(progress.totalRareRequired, 4);
+  assert.equal(progress.missingRareRequired, 4);
+  assert.equal(progress.percentage, 0);
+});
+
+test("rare progress increases proportionally with owned intermediate units", () => {
+  const inventory = createEmptyInventory();
+  inventory.units[unitId("영웅", "손오공")] = 1;
+
+  const progress = calculateRareProgress(unitId("서사", "손오공"), inventory);
+
+  assert.equal(progress.totalRareRequired, 4);
+  assert.equal(progress.missingRareRequired, 2);
+  assert.equal(progress.percentage, 50);
+});
+
+test("rare progress reaches 100 percent even when gas is missing", () => {
+  const inventory = createEmptyInventory();
+  inventory.units[unitId("레어", "손오공")] = 4;
+
+  const shortage = calculateShortage(unitId("서사", "손오공"), inventory);
+  const progress = calculateRareProgress(
+    unitId("서사", "손오공"),
+    inventory,
+    shortage,
+  );
+
+  assert.equal(shortage.gasShortage, 4);
+  assert.equal(shortage.craftable, false);
+  assert.equal(progress.totalRareRequired, 4);
+  assert.equal(progress.missingRareRequired, 0);
+  assert.equal(progress.percentage, 100);
+});
+
+test("rare progress percentage returns 100 when total rare requirement is zero", () => {
+  assert.equal(calculateRareProgressPercentage(0, 0), 100);
 });

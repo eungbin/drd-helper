@@ -1,6 +1,12 @@
 import { emptyRareCounts, rareUnitNames, recipesByTargetId, unitsById } from "./data";
 import type { Inventory, RareCounts, Shortage, UnitId } from "./types";
 
+export type RareProgress = {
+  totalRareRequired: number;
+  missingRareRequired: number;
+  percentage: number;
+};
+
 export function createEmptyInventory(): Inventory {
   return { gas: 0, units: {} };
 }
@@ -115,6 +121,45 @@ function addRareShortage(
   }
 
   rareShortage[rareUnitName] += normalizeCount(count);
+}
+
+function sumRareCounts(rareCounts: RareCounts): number {
+  return rareUnitNames.reduce((total, name) => total + rareCounts[name], 0);
+}
+
+export function calculateRareProgressPercentage(
+  totalRareRequired: number,
+  missingRareRequired: number,
+): number {
+  const total = normalizeCount(totalRareRequired);
+  const missing = normalizeCount(missingRareRequired);
+
+  if (total === 0) {
+    return 100;
+  }
+
+  const fulfilled = Math.min(total, Math.max(0, total - missing));
+
+  return Math.min(100, Math.max(0, Math.round((fulfilled / total) * 100)));
+}
+
+export function calculateRareProgress(
+  targetUnitId: UnitId,
+  inventory: Inventory,
+  currentShortage = calculateShortage(targetUnitId, inventory),
+): RareProgress {
+  const totalShortage = calculateShortage(targetUnitId, createEmptyInventory());
+  const totalRareRequired = sumRareCounts(totalShortage.rareShortage);
+  const missingRareRequired = sumRareCounts(currentShortage.rareShortage);
+
+  return {
+    totalRareRequired,
+    missingRareRequired,
+    percentage: calculateRareProgressPercentage(
+      totalRareRequired,
+      missingRareRequired,
+    ),
+  };
 }
 
 function isRareUnitName(rareUnitName: string): rareUnitName is keyof RareCounts {
