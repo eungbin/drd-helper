@@ -68,3 +68,15 @@ test("target result modal manages keyboard focus", () => {
   assert.match(dashboardSource, /closeButtonRef\.current\?\.focus\(\)/);
   assert.match(dashboardSource, /onKeyDown=\{handleDialogKeyDown\}/);
 });
+
+test("target recipe search restores focus to the target search input", () => {
+  const dashboardSource = readFileSync(
+    join(process.cwd(), "src/features/drd-helper/Dashboard.tsx"),
+    "utf8",
+  );
+
+  assert.match(dashboardSource, /targetSearchInputRef/);
+  assert.match(dashboardSource, /closeTargetModalWithoutFocusRestore/);
+  assert.match(dashboardSource, /targetSearchInputRef\.current\?\.focus\(\)/);
+  assert.match(dashboardSource, /ref=\{targetSearchInputRef\}/);
+});

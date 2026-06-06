@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [targetNameQuery, setTargetNameQuery] = useState("");
   const [selectedTargetId, setSelectedTargetId] = useState<UnitId | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const targetSearchInputRef = useRef<HTMLInputElement | null>(null);
   const hasTargetSearch =
     targetGradeFilter !== "all" || targetNameQuery.trim().length > 0;
   const targetSearchUnits = hasTargetSearch
@@ -101,6 +102,11 @@ export default function Dashboard() {
     previousFocusRef.current = null;
   }, []);
 
+  const closeTargetModalWithoutFocusRestore = useCallback(() => {
+    previousFocusRef.current = null;
+    setSelectedTargetId(null);
+  }, []);
+
   useEffect(() => {
     if (!selectedTargetId) {
       return;
@@ -120,9 +126,10 @@ export default function Dashboard() {
   }, [closeTargetModal, selectedTargetId]);
 
   function searchUnit(unit: UnitDefinition) {
-    closeTargetModal();
+    closeTargetModalWithoutFocusRestore();
     setTargetGradeFilter(unit.grade);
     setTargetNameQuery(unit.name);
+    targetSearchInputRef.current?.focus();
   }
 
   return (
@@ -195,6 +202,7 @@ export default function Dashboard() {
                   <input
                     className="h-10 rounded border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-500"
                     placeholder="예: 손오공"
+                    ref={targetSearchInputRef}
                     type="search"
                     value={targetNameQuery}
                     onChange={(event) => setTargetNameQuery(event.target.value)}
