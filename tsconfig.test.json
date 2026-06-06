@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".test-build",
+    "rootDir": ".",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "types": ["node"],
+    "incremental": false,
+    "tsBuildInfoFile": ".test-build/tsconfig.test.tsbuildinfo"
+  },
+  "include": ["src/features/drd-helper/**/*.ts"]
+}
