@@ -50,3 +50,21 @@ test("target result details move into an accessible modal with compact card labe
   assert.match(dashboardSource, /조합법/);
   assert.doesNotMatch(dashboardSource, /상세 보기/);
 });
+
+test("target result modal manages keyboard focus", () => {
+  const dashboardSource = readFileSync(
+    join(process.cwd(), "src/features/drd-helper/Dashboard.tsx"),
+    "utf8",
+  );
+
+  assert.match(dashboardSource, /import \{[^}]*useRef[^}]*\} from "react"/s);
+  assert.match(dashboardSource, /previousFocusRef/);
+  assert.match(dashboardSource, /closeButtonRef/);
+  assert.match(dashboardSource, /dialogRef/);
+  assert.match(dashboardSource, /getModalFocusableElements/);
+  assert.match(dashboardSource, /handleDialogKeyDown/);
+  assert.match(dashboardSource, /event\.key === "Tab"/);
+  assert.match(dashboardSource, /previousFocusRef\.current\?\.focus\(\)/);
+  assert.match(dashboardSource, /closeButtonRef\.current\?\.focus\(\)/);
+  assert.match(dashboardSource, /onKeyDown=\{handleDialogKeyDown\}/);
+});

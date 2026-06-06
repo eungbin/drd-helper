@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 
 import {
   calculateRareProgress,
@@ -41,6 +42,7 @@ export default function Dashboard() {
     useState<GradeFilter>("all");
   const [targetNameQuery, setTargetNameQuery] = useState("");
   const [selectedTargetId, setSelectedTargetId] = useState<UnitId | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const hasTargetSearch =
     targetGradeFilter !== "all" || targetNameQuery.trim().length > 0;
   const targetSearchUnits = hasTargetSearch
@@ -53,24 +55,6 @@ export default function Dashboard() {
   const selectedTarget = selectedTargetId
     ? unitsById.get(selectedTargetId)
     : undefined;
-
-  useEffect(() => {
-    if (!selectedTargetId) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setSelectedTargetId(null);
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [selectedTargetId]);
 
   function updateGas(value: string) {
     setInventory((current) => ({
@@ -100,9 +84,40 @@ export default function Dashboard() {
     setTargetNameQuery("");
   }
 
-  function closeTargetModal() {
-    setSelectedTargetId(null);
+  function openTargetModal(unitId: UnitId) {
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setSelectedTargetId(unitId);
   }
+
+  const closeTargetModal = useCallback(() => {
+    const previousFocus = previousFocusRef.current;
+    setSelectedTargetId(null);
+    if (previousFocus) {
+      previousFocusRef.current?.focus();
+    }
+    previousFocusRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTargetId) {
+      return;
+    }
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeTargetModal();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeTargetModal, selectedTargetId]);
 
   function searchUnit(unit: UnitDefinition) {
     closeTargetModal();
@@ -215,7 +230,7 @@ export default function Dashboard() {
                         progress={progress}
                         shortage={shortage}
                         unit={unit}
-                        onOpen={() => setSelectedTargetId(unit.id)}
+                        onOpen={() => openTargetModal(unit.id)}
                       />
                     );
                   })
@@ -332,6 +347,23 @@ function getProgressBarWidth(progress: RareProgress): string {
   return `${progress.percentage}%`;
 }
 
+function getModalFocusableElements(dialog: HTMLElement | null): HTMLElement[] {
+  if (!dialog) {
+    return [];
+  }
+
+  const selector = [
+    "a[href]",
+    "button:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(",");
+
+  return Array.from(dialog.querySelectorAll<HTMLElement>(selector));
+}
+
 function TargetResultCard({
   progress,
   shortage,
@@ -443,6 +475,43 @@ function TargetResultModal({
     shortage.gasShortage === 0
       ? "rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700"
       : "rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700";
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  function handleDialogKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Tab") {
+      const focusableElements = getModalFocusableElements(dialogRef.current);
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+      const focusIsOutsideDialog =
+        !activeElement || !dialogRef.current?.contains(activeElement);
+
+      if (event.shiftKey) {
+        if (activeElement === firstElement || focusIsOutsideDialog) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+
+        return;
+      }
+
+      if (activeElement === lastElement || focusIsOutsideDialog) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }
 
   return (
     <div
@@ -453,7 +522,9 @@ function TargetResultModal({
         aria-labelledby="target-result-modal-title"
         aria-modal="true"
         className="max-h-full w-full max-w-2xl overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-xl"
+        ref={dialogRef}
         role="dialog"
+        onKeyDown={handleDialogKeyDown}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -471,6 +542,7 @@ function TargetResultModal({
           <button
             aria-label="상세 모달 닫기"
             className="h-8 w-8 shrink-0 rounded border border-zinc-300 bg-white text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
           >
