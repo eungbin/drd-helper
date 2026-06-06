@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { calculateShortage, createEmptyInventory } from "./calculator";
+import {
+  calculateRareProgress,
+  calculateShortage,
+  createEmptyInventory,
+} from "./calculator";
+import type { RareProgress } from "./calculator";
 import {
   grades,
   rareUnitNames,
@@ -20,7 +25,13 @@ import {
   searchableTargetResultUnits,
   targetResultGradeOptions,
 } from "./target-results";
-import type { Inventory, Material, UnitDefinition, UnitId } from "./types";
+import type {
+  Inventory,
+  Material,
+  Shortage,
+  UnitDefinition,
+  UnitId,
+} from "./types";
 
 export default function Dashboard() {
   const [inventory, setInventory] = useState<Inventory>(() =>
@@ -29,6 +40,7 @@ export default function Dashboard() {
   const [targetGradeFilter, setTargetGradeFilter] =
     useState<GradeFilter>("all");
   const [targetNameQuery, setTargetNameQuery] = useState("");
+  const [selectedTargetId, setSelectedTargetId] = useState<UnitId | null>(null);
   const hasTargetSearch =
     targetGradeFilter !== "all" || targetNameQuery.trim().length > 0;
   const targetSearchUnits = hasTargetSearch
@@ -38,6 +50,24 @@ export default function Dashboard() {
     grade: targetGradeFilter,
     nameQuery: targetNameQuery,
   });
+
+  useEffect(() => {
+    if (!selectedTargetId) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSelectedTargetId(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedTargetId]);
 
   function updateGas(value: string) {
     setInventory((current) => ({
@@ -67,7 +97,12 @@ export default function Dashboard() {
     setTargetNameQuery("");
   }
 
+  function closeTargetModal() {
+    setSelectedTargetId(null);
+  }
+
   function searchUnit(unit: UnitDefinition) {
+    closeTargetModal();
     setTargetGradeFilter(unit.grade);
     setTargetNameQuery(unit.name);
   }
@@ -164,86 +199,22 @@ export default function Dashboard() {
                   </p>
                 ) : (
                   filteredTargetUnits.map((unit) => {
-                  const shortage = calculateShortage(unit.id, inventory);
-                  const missingRareUnits = rareUnitNames
-                    .map((name) => ({
-                      name,
-                      count: shortage.rareShortage[name],
-                    }))
-                    .filter((entry) => entry.count > 0);
+                    const shortage = calculateShortage(unit.id, inventory);
+                    const progress = calculateRareProgress(
+                      unit.id,
+                      inventory,
+                      shortage,
+                    );
 
-                  return (
-                    <article
-                      className="rounded-lg border border-zinc-200 bg-white p-3"
-                      key={unit.id}
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <div className="text-xs font-medium text-zinc-500">
-                            <GradeText grade={unit.grade} />
-                          </div>
-                          <h3 className="mt-1 break-words text-sm font-semibold leading-5 text-zinc-950">
-                            {unit.name}
-                          </h3>
-                        </div>
-                        <span
-                          className={
-                            shortage.craftable
-                              ? "w-fit rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700"
-                              : "w-fit rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-600"
-                          }
-                        >
-                          {shortage.craftable ? "조합 가능" : "재료 부족"}
-                        </span>
-                      </div>
-
-                      <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                        <div className="rounded border border-zinc-200 bg-zinc-50 p-2">
-                          <dt className="text-xs font-medium text-zinc-500">
-                            부족한 레어 유닛
-                          </dt>
-                          <dd className="mt-1 min-w-0 break-words text-zinc-800">
-                            {missingRareUnits.length === 0
-                              ? "없음"
-                              : missingRareUnits
-                                  .map(
-                                    (entry) =>
-                                      `${entry.name} x${entry.count}`,
-                                  )
-                                  .join(", ")}
-                          </dd>
-                        </div>
-                        <div className="rounded border border-zinc-200 bg-zinc-50 p-2">
-                          <dt className="text-xs font-medium text-zinc-500">
-                            부족한 가스
-                          </dt>
-                          <dd className="mt-1 text-zinc-800">
-                            {shortage.gasShortage}
-                          </dd>
-                        </div>
-                      </dl>
-                      <div className="mt-3 rounded border border-zinc-200 bg-zinc-50 p-2">
-                        <div className="text-xs font-medium text-zinc-500">
-                          조합법
-                        </div>
-                        <ul className="mt-2 flex flex-wrap gap-1.5 text-sm text-zinc-700">
-                          {recipesByTargetId
-                            .get(unit.id)
-                            ?.materials.map((material, index) => (
-                              <li
-                                className="min-w-0 max-w-full"
-                                key={`${unit.id}-${index}`}
-                              >
-                                <MaterialChip
-                                  material={material}
-                                  onSearchUnit={searchUnit}
-                                />
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                    </article>
-                  );
+                    return (
+                      <TargetResultCard
+                        key={unit.id}
+                        progress={progress}
+                        shortage={shortage}
+                        unit={unit}
+                        onOpen={() => setSelectedTargetId(unit.id)}
+                      />
+                    );
                   })
                 )}
               </div>
@@ -326,6 +297,88 @@ function InventoryPanel({
         })}
       </div>
     </section>
+  );
+}
+
+function getMissingRareUnits(shortage: Shortage) {
+  return rareUnitNames
+    .map((name) => ({
+      name,
+      count: shortage.rareShortage[name],
+    }))
+    .filter((entry) => entry.count > 0);
+}
+
+function getGasStatusLabel(shortage: Shortage): string {
+  if (shortage.gasShortage === 0) {
+    return "가스 OK";
+  }
+
+  return `가스 부족 x${shortage.gasShortage}`;
+}
+
+function getProgressBarWidth(progress: RareProgress): string {
+  return `${progress.percentage}%`;
+}
+
+function TargetResultCard({
+  progress,
+  shortage,
+  unit,
+  onOpen,
+}: {
+  progress: RareProgress;
+  shortage: Shortage;
+  unit: UnitDefinition;
+  onOpen: () => void;
+}) {
+  const gasStatusLabel = getGasStatusLabel(shortage);
+  const missingRareUnits = getMissingRareUnits(shortage);
+  const progressBarClassName =
+    missingRareUnits.length === 0
+      ? "block h-full bg-emerald-500"
+      : "block h-full bg-sky-500";
+
+  return (
+    <button
+      className="relative block w-full overflow-hidden rounded-lg border border-zinc-200 bg-white p-3 pb-4 text-left text-zinc-950 transition hover:border-zinc-300 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-500"
+      type="button"
+      onClick={onOpen}
+    >
+      <span className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <span className="min-w-0">
+          <span className="block text-xs font-medium text-zinc-500">
+            <GradeText grade={unit.grade} />
+          </span>
+          <span className="mt-1 block break-words text-sm font-semibold leading-5 text-zinc-950">
+            {unit.name}
+          </span>
+        </span>
+        <span
+          className={
+            shortage.gasShortage === 0
+              ? "w-fit rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700"
+              : "w-fit rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700"
+          }
+        >
+          {gasStatusLabel}
+        </span>
+      </span>
+
+      <span className="mt-4 flex items-end justify-between gap-3">
+        <span className="text-xs font-medium text-zinc-500">레어 기준</span>
+        <span className="text-2xl font-semibold tabular-nums text-zinc-950">
+          {progress.percentage}%
+        </span>
+      </span>
+
+      <span className="absolute inset-x-0 bottom-0 h-1 bg-zinc-100">
+        <span
+          className={progressBarClassName}
+          style={{ width: getProgressBarWidth(progress) }}
+        />
+      </span>
+    </button>
   );
 }
 
