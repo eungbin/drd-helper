@@ -1,9 +1,40 @@
 import type { Metadata } from "next";
+
+import {
+  getRobotsPolicy,
+  getSiteUrl,
+  siteDescription,
+  siteKeywords,
+  siteName,
+  siteTitle,
+} from "./seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DRD Helper",
-  description: "드래곤볼 운빨 디펜스 조합 계산기",
+  metadataBase: getSiteUrl(),
+  title: siteTitle,
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: [...siteKeywords],
+  creator: siteName,
+  publisher: siteName,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    url: "/",
+    siteName,
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  robots: getRobotsPolicy(),
 };
 
 export default function RootLayout({

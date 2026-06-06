@@ -80,11 +80,11 @@ export default function Dashboard() {
             <div className="min-w-0">
               <p className="text-sm font-medium text-zinc-500">DRD Helper</p>
               <h1 className="mt-1 text-2xl font-semibold text-zinc-950">
-                인벤토리 조합 시뮬레이터
+                드래곤볼 운빨 디펜스 조합 계산기
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
-                보유 유닛과 가스를 입력하면 상위 유닛별 부족 재료를
-                계산합니다.
+                보유 유닛과 가스를 입력하면 상위 유닛별 부족 재료와
+                조합법을 빠르게 확인하는 공략 도우미입니다.
               </p>
             </div>
 

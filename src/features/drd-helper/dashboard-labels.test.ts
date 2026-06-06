@@ -19,3 +19,16 @@ test("labels the target search reset button as initial reset", () => {
   assert.notEqual(resetHandlerIndex, -1);
   assert.match(resetButtonSource, />\s*초기화\s*<\/button>/);
 });
+
+test("uses SEO-focused dashboard heading and supporting copy", () => {
+  const dashboardSource = readFileSync(
+    join(process.cwd(), "src/features/drd-helper/Dashboard.tsx"),
+    "utf8",
+  );
+
+  assert.match(dashboardSource, /드래곤볼 운빨 디펜스 조합 계산기/);
+  assert.match(dashboardSource, /공략 도우미/);
+  assert.match(dashboardSource, /부족 재료/);
+  assert.match(dashboardSource, /조합법/);
+  assert.match(dashboardSource, /가스/);
+});

@@ -11,5 +11,5 @@
     "incremental": false,
     "tsBuildInfoFile": ".test-build/tsconfig.test.tsbuildinfo"
   },
-  "include": ["src/features/drd-helper/**/*.ts"]
+  "include": ["src/app/**/*.ts", "src/features/drd-helper/**/*.ts"]
 }
