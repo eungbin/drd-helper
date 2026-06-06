@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:logic": "tsc -p tsconfig.test.json && node --test .test-build/src/features/drd-helper/calculator.test.js .test-build/src/features/drd-helper/filters.test.js .test-build/src/features/drd-helper/grade-styles.test.js .test-build/src/features/drd-helper/inventory.test.js .test-build/src/features/drd-helper/missions.test.js .test-build/src/features/drd-helper/target-results.test.js"
+    "test:logic": "tsc -p tsconfig.test.json && node --test .test-build/src/features/drd-helper/calculator.test.js .test-build/src/features/drd-helper/dashboard-labels.test.js .test-build/src/features/drd-helper/filters.test.js .test-build/src/features/drd-helper/grade-styles.test.js .test-build/src/features/drd-helper/inventory.test.js .test-build/src/features/drd-helper/missions.test.js .test-build/src/features/drd-helper/target-results.test.js"
   },
   "dependencies": {
     "next": "16.2.7",

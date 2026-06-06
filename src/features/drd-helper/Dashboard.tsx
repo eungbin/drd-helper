@@ -153,7 +153,7 @@ export default function Dashboard() {
                   type="button"
                   onClick={resetTargetSearch}
                 >
-                  상위만 보기
+                  초기화
                 </button>
               </div>
 
